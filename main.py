@@ -1,26 +1,59 @@
 import osmnx as ox
 import matplotlib.pyplot as plt
+import pandas as pd
 
 """
 メモ
 ・キャッシュを使用したい
-・範囲の指定をosmnx.features. features_from_bbox ( bbox , tags )などを使用して、緯度経度の枠で指定したい
 ・geojsonデータの読み込みとファイル画像の出力を行いたい
 """
 
-# 地域の情報を取得（字雄興を例に）
-latitude = 44.908699
-longitude = 141.957398
-dist = 8000 # km
+dpi = 600
+
+north = 44.97
+south = 44.87
+east = 141.9
+west = 142.07
 
 print("featuresの取得")
-water = ox.features_from_point(center_point=(latitude,longitude), dist=dist, tags={'natural': 'water'})
-fig1, ax = ox.plot_footprints(water, figsize = (8, 8) , color = 'blue' , edge_color = 'none' , edge_linewidth = 0 , alpha = None , bgcolor = '#ffffff' , bbox = None , show = True , close = False , save = False , filepath = None , dpi = 600 ) 
+water = ox.features_from_bbox(bbox=[west,south,east,north],tags={'natural': 'water'})
 
 print("道路データの取得")
-road = ox.graph_from_point(center_point=(latitude,longitude), dist=dist,network_type='all')
-fig2, ax = ox.plot_graph(road, ax = None , figsize = (8, 8) , bgcolor = '#ffffff' , node_color = 'w' , node_size = 0 , node_alpha = None , node_edgecolor = 'none' , node_zorder = 1 , edge_color = 'green' , edge_linewidth = 1 , edge_alpha = None , bbox = None , show = True , close = False , save = False , filepath = None , dpi = 300 ) 
+road = ox.graph_from_bbox(bbox=[west,south,east,north],network_type='all')
+
+print('鉄道データの取得')
+railways = ox.graph_from_bbox(bbox=[west, south, east, north], network_type='all', simplify=True, retain_all=True, truncate_by_edge=True, custom_filter='["railway"~"rail"]')
+
+print('建物データの取得')
+buildings = ox.features_from_bbox(bbox=[west, south, east, north], tags={'building': True})
+
+# 共通のFigureとAxesを作成
+print('プロット処理')
+fig, ax = plt.subplots(figsize=(10, 8)) # 横：縦
+
+# 道路を描画
+ox.plot_graph(road, ax=ax, show=False, close=False, bgcolor='#ffffff', edge_color='green', node_size=0)
+
+# 水域を重ねて描画
+ox.plot_footprints(water, ax=ax, show=True, close=True, color='blue', edge_color='none')
+
+# add the railway
+ox.plot_graph(railways, ax=ax, show=True, close=True, edge_color='black', edge_linewidth=0.5, node_size=0)
+
+ox.plot_footprints(buildings, ax=ax, show=True, close=True, color='orange', edge_color='none')
 
 # pngファイルで出力
-fig2.savefig("output/sample.png", dpi=300)
+fig.savefig("output/sample.png", dpi=dpi)
 print("地図画像を出力しました: output/sample.png")
+
+"""
+# 使用した関数についてのメモ
+features_from_bbox ( bbox , tags )
+    bbox ( tuple[ float, float, float, float] ) – 境界ボックスは(left, bottom, right, top)で表されます。座標は非投影の緯度経度度 (EPSG:4326) で指定します。
+    tags ( dict[ str, bool| str| list[ str]] ) – 選択したエリア内の要素を検索するためのタグ
+graph_from_bbox ( bbox , * , network_type = 'all' , simplify = True , retain_all = False , truncate_by_edge = False , custom_filter = None )
+    bbox ( tuple[ float, float, float, float] ) – 境界ボックスは(left, bottom, right, top)で表されます。座標は非投影の緯度経度度 (EPSG:4326) で指定します。
+    network_type ( ) – {“all”, “all_public”, “bike”, “drive”, “drive_service”, “walk”} custom_filterstrがNoneの場合に取得する道路ネットワークの種類。
+    simplify ( ) – Trueの場合、 simpliify_graphbool関数を使用してグラフトポロジを簡素化します。
+    その他もろもろ
+"""
