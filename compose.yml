@@ -1,9 +1,6 @@
-version: '3.9'
-
 services:
   app:
     build: .
-    image: gboeing/osmnx:latest
     container_name: osm-print-tool
     volumes:
       - .:/app
